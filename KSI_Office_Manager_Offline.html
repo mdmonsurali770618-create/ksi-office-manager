@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KSI Office Manager</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f6fa;color:#172033}
+header{background:#173b68;color:white;padding:18px 14px;position:sticky;top:0;z-index:5}
+header h1{margin:0;font-size:22px}header p{margin:5px 0 0;font-size:13px;opacity:.85}
+nav{display:flex;gap:7px;overflow:auto;padding:10px;background:white;position:sticky;top:72px;z-index:4;border-bottom:1px solid #ddd}
+nav button{border:0;padding:10px 12px;border-radius:8px;background:#e9eef5;white-space:nowrap}
+nav button.active{background:#173b68;color:#fff}
+main{padding:12px;max-width:1000px;margin:auto}.page{display:none}.page.active{display:block}
+.card{background:#fff;border-radius:12px;padding:15px;margin-bottom:12px;box-shadow:0 2px 8px #0000000d}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
+.stat{font-size:25px;font-weight:bold}.muted{font-size:12px;color:#687386}
+label{display:block;font-weight:bold;font-size:13px;margin:8px 0 4px}
+input,select{width:100%;padding:10px;border:1px solid #ccd4df;border-radius:7px;font-size:14px}
+button.primary,button.danger,button.success{border:0;color:#fff;padding:10px 14px;border-radius:7px;margin-top:10px}
+.primary{background:#1769aa}.success{background:#18864b}.danger{background:#c62828}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px;min-width:650px}
+th,td{border-bottom:1px solid #e1e5ea;padding:8px;text-align:left}th{background:#eef3f8}
+.row{display:flex;gap:8px;flex-wrap:wrap}.row>*{flex:1}
+.hour-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+@media(min-width:700px){.hour-grid{grid-template-columns:repeat(5,1fr)}}
+.notice{background:#fff8df;border-left:4px solid #e0a800;padding:10px;border-radius:5px;font-size:13px}
+
+.login-overlay{position:fixed;inset:0;background:#173b68;display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px}
+.login-box{background:#fff;width:100%;max-width:380px;padding:24px;border-radius:16px;box-shadow:0 10px 35px #0005}
+.login-box h2{text-align:center;margin:0 0 8px}.login-box p{text-align:center;color:#687386;font-size:13px}
+.login-error{color:#c62828;font-size:13px;margin-top:8px;text-align:center;min-height:18px}
+#clock{font-size:13px;margin-top:6px;font-weight:bold}
+.photo{width:46px;height:46px;border-radius:50%;object-fit:cover;background:#e9eef5}
+.profile{display:flex;align-items:center;gap:10px}
+.profile img{width:70px;height:70px;border-radius:50%;object-fit:cover;border:2px solid #d7dee8}
+
+</head>
+<body>
+<div id="loginOverlay" class="login-overlay">
+ <div class="login-box">
+  <h2>🔐 KSI Office Manager</h2>
+  <p>Authorized User Login</p>
+  <label>Username</label><input id="loginUser" autocomplete="username" placeholder="Username">
+  <label>Password</label><input id="loginPass" type="password" autocomplete="current-password" placeholder="Password">
+  <button class="primary" style="width:100%;margin-top:14px" onclick="login()">Login</button>
+  <div id="loginError" class="login-error"></div>
+  <p style="margin-top:16px">প্রথমবার ব্যবহার: Username <b>admin</b> / Password <b>1234</b></p>
+ </div>
+</div>
+
+<header><h1>📋 KSI Office Manager</h1>
+<p>Offline Attendance & Production Management</p>
+<div id="clock">Loading...</div>
+<button class="danger" style="margin-top:7px;padding:6px 10px" onclick="logout()">Logout</button>
+</header>
+<nav id="nav">
+<button data-page="dashboard" class="active">Dashboard</button>
+<button data-page="attendance">Attendance</button>
+<button data-page="production">Daily Production</button>
+<button data-page="hourly">Hourly Production</button>
+<button data-page="employees">Employees</button><button data-page="search">Operator Search</button>
+<button data-page="reports">Reports</button>
+<button data-page="backup">Backup</button>
+</nav>
+<main>
+
+<section id="dashboard" class="page active">
+<div class="grid">
+<div class="card"><div class="stat" id="dEmployees">0</div><div class="muted">Employees</div></div>
+<div class="card"><div class="stat" id="dPresent">0</div><div class="muted">Present Today</div></div>
+<div class="card"><div class="stat" id="dProduction">0</div><div class="muted">Today's Production</div></div>
+<div class="card"><div class="stat" id="dRecords">0</div><div class="muted">Total Records</div></div>
+</div>
+<div class="card"><h3>আজকের সারাংশ</h3><div id="summary">কোনো ডাটা নেই।</div></div>
+</section>
+
+<section id="attendance" class="page">
+<div class="card"><h3>✅ Attendance Entry</h3>
+<label>Date</label><input type="date" id="attDate">
+<div class="row"><div><label>Employee ID</label><input id="attId" placeholder="যেমন: 1001"></div><div><label>Employee Name</label><input id="attName" placeholder="নাম"></div></div>
+<div class="row"><div><label>Status</label><select id="attStatus"><option>Present</option><option>Absent</option><option>Leave</option><option>Medical Leave</option><option>Gate Pass</option></select></div><div><label>Reason</label><input id="attReason" placeholder="প্রয়োজনে কারণ"></div></div>
+<button class="success" onclick="saveAttendance()">Save Attendance</button>
+</div>
+<div class="card"><h3>Attendance Records</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>ID</th><th>Name</th><th>Status</th><th>Reason</th><th>Action</th></tr></thead><tbody id="attTable"></tbody></table></div></div>
+</section>
+
+<section id="production" class="page">
+<div class="card"><h3>📊 Daily Production</h3>
+<label>Date</label><input type="date" id="prodDate">
+<div class="row"><div><label>Employee ID</label><input id="prodId"></div><div><label>Employee Name</label><input id="prodName"></div></div>
+<div class="row"><div><label>Order ID / Style</label><input id="prodOrder"></div><div><label>Target</label><input type="number" id="prodTarget" min="0"></div><div><label>Total Production</label><input type="number" id="prodTotal" min="0"></div></div>
+<button class="success" onclick="saveProduction()">Save Production</button>
+</div>
+<div class="card"><h3>Production Records</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>ID</th><th>Name</th><th>Order</th><th>Target</th><th>Production</th><th>Efficiency</th><th>Action</th></tr></thead><tbody id="prodTable"></tbody></table></div></div>
+</section>
+
+<section id="hourly" class="page">
+<div class="card"><h3>⏱️ 10-Hour Production</h3>
+<label>Date</label><input type="date" id="hourDate">
+<div class="row"><div><label>Employee ID</label><input id="hourId"></div><div><label>Employee Name</label><input id="hourName"></div><div><label>Order / Style</label><input id="hourOrder"></div></div>
+<div class="hour-grid" id="hourInputs"></div>
+<button class="success" onclick="saveHourly()">Save 10-Hour Record</button>
+</div>
+<div class="card"><h3>Hourly Records</h3><div class="table-wrap"><table><thead><tr><th>Date</th><th>ID</th><th>Name</th><th>Order</th><th>10-Hour Total</th><th>Action</th></tr></thead><tbody id="hourTable"></tbody></table></div></div>
+</section>
+
+<section id="employees" class="page">
+<div class="card"><h3>👥 Employee Management</h3>
+<div class="row"><div><label>Employee ID</label><input id="empId"></div><div><label>Name</label><input id="empName"></div><div><label>Process / Department</label><input id="empProcess"></div></div>
+<label>Operator Photo</label><input type="file" id="empPhoto" accept="image/*">
+<button class="success" onclick="saveEmployee()">Add Employee</button>
+<p class="notice">আপনি সর্বোচ্চ ১৬ জন অপারেটর/কর্মীর তথ্য সহজে রাখতে পারবেন।</p>
+</div>
+<div class="card"><h3>Employee List</h3><div class="table-wrap"><table><thead><tr><th>Photo</th><th>ID</th><th>Name</th><th>Process</th><th>Action</th></tr></thead><tbody id="empTable"></tbody></table></div></div>
+</section>
+
+
+<section id="search" class="page">
+<div class="card"><h3>🔎 Operator ID Search</h3>
+<label>Operator ID</label><input id="searchId" placeholder="Operator ID লিখুন">
+<div class="row"><button class="primary" onclick="searchOperator()">Search</button><button class="success" onclick="showAllYear()">Show Full Year</button></div>
+</div>
+<div class="card"><div id="operatorResult">Operator ID দিয়ে Search করলে পুরো মাস/বছরের তথ্য দেখা যাবে।</div></div>
+</section>
+<section id="reports" class="page">
+<div class="card"><h3>📈 Reports</h3>
+<div class="row"><div><label>Month</label><input type="month" id="reportMonth"></div><div><label>Employee ID (optional)</label><input id="reportEmp"></div></div>
+<button class="primary" onclick="makeReport()">Show Report</button>
+<button class="success" onclick="exportCSV()">Export All Data CSV</button>
+</div>
+<div class="card"><div id="reportResult">রিপোর্ট দেখতে মাস নির্বাচন করুন।</div></div>
+</section>
+
+<section id="backup" class="page">
+<div class="card"><h3>💾 Backup & Restore</h3>
+<p>আপনার ডাটা এই ফোনের ব্রাউজারে Offline-ভাবে সংরক্ষিত থাকবে। ফোন/ব্রাউজার ডাটা মুছে ফেললে ডাটা হারাতে পারে—তাই Backup রাখুন।</p>
+<button class="success" onclick="downloadBackup()">Download Backup</button>
+<label>Restore Backup (.json)</label><input type="file" id="restoreFile" accept=".json" onchange="restoreBackup(event)">
+<button class="danger" onclick="clearAll()">Delete All Data</button>
+</div>
+</section>
+</main>
+
+<script>
+const KEY='ksi_office_manager_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"employees":[],"attendance":[],"production":[],"hourly":[]}');
+const today=new Date().toISOString().slice(0,10);
+['attDate','prodDate','hourDate'].forEach(id=>document.getElementById(id).value=today);
+for(let i=1;i<=10;i++){
+ const d=document.createElement('div');
+ d.innerHTML='<label>Hour '+i+'</label><input type="number" min="0" id="h'+i+'" value="0">';
+ document.getElementById('hourInputs').appendChild(d);
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(db));render();}
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+function del(type,i){if(confirm('এই রেকর্ডটি মুছে ফেলবেন?')){db[type].splice(i,1);save();}}
+function saveEmployee(){
+ let id=empId.value.trim(),name=empName.value.trim();
+ if(!id||!name)return alert('Employee ID এবং Name দিন।');
+ if(db.employees.some(x=>x.id===id))return alert('এই ID আগে থেকেই আছে।');
+ let file=empPhoto.files[0];
+ if(file){
+   let reader=new FileReader();
+   reader.onload=()=>{db.employees.push({id,name,process:empProcess.value.trim(),photo:reader.result});save();clearEmpForm();};
+   reader.readAsDataURL(file);
+ }else{
+   db.employees.push({id,name,process:empProcess.value.trim(),photo:''});save();clearEmpForm();
+ }
+}
+function clearEmpForm(){empId.value=empName.value=empProcess.value='';empPhoto.value='';}
+function saveAttendance(){
+ if(!attId.value.trim()||!attName.value.trim())return alert('ID ও Name দিন।');
+ db.attendance.push({date:attDate.value,id:attId.value.trim(),name:attName.value.trim(),status:attStatus.value,reason:attReason.value.trim()});save();
+ attReason.value='';
+}
+function saveProduction(){
+ let target=+prodTarget.value||0,total=+prodTotal.value||0;
+ if(!prodId.value.trim()||!prodName.value.trim())return alert('ID ও Name দিন।');
+ db.production.push({date:prodDate.value,id:prodId.value.trim(),name:prodName.value.trim(),order:prodOrder.value.trim(),target,total});save();
+}
+function saveHourly(){
+ if(!hourId.value.trim()||!hourName.value.trim())return alert('ID ও Name দিন।');
+ let hours=[];for(let i=1;i<=10;i++)hours.push(+document.getElementById('h'+i).value||0);
+ db.hourly.push({date:hourDate.value,id:hourId.value.trim(),name:hourName.value.trim(),order:hourOrder.value.trim(),hours,total:hours.reduce((a,b)=>a+b,0)});save();
+}
+
+let sessionKey='ksi_logged_in';
+function login(){
+ const u=document.getElementById('loginUser').value.trim();
+ const pw=document.getElementById('loginPass').value;
+ if(u==='admin' && pw==='1234'){
+   sessionStorage.setItem(sessionKey,'1');
+   document.getElementById('loginOverlay').style.display='none';
+   document.getElementById('loginError').textContent='';
+ }else document.getElementById('loginError').textContent='Username অথবা Password ভুল।';
+}
+function logout(){sessionStorage.removeItem(sessionKey);location.reload();}
+if(sessionStorage.getItem(sessionKey)==='1')document.getElementById('loginOverlay').style.display='none';
+
+function updateClock(){
+ const now=new Date();
+ const d=now.toLocaleDateString('bn-BD',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+ const t=now.toLocaleTimeString('en-GB',{hour12:true});
+ document.getElementById('clock').textContent='🕒 '+d+' | '+t;
+}
+setInterval(updateClock,1000);updateClock();
+
+function searchOperator(){
+ const id=document.getElementById('searchId').value.trim();
+ if(!id)return alert('Operator ID দিন।');
+ const emp=db.employees.find(x=>x.id===id);
+ const a=db.attendance.filter(x=>x.id===id).sort((x,y)=>y.date.localeCompare(x.date));
+ const p=db.production.filter(x=>x.id===id).sort((x,y)=>y.date.localeCompare(x.date));
+ const h=db.hourly.filter(x=>x.id===id).sort((x,y)=>y.date.localeCompare(x.date));
+ if(!emp && !a.length && !p.length && !h.length){operatorResult.innerHTML='<p>এই ID-এর কোনো তথ্য পাওয়া যায়নি।</p>';return;}
+ const present=a.filter(x=>x.status==='Present').length, absent=a.filter(x=>x.status==='Absent').length;
+ const leave=a.filter(x=>x.status==='Leave').length, medical=a.filter(x=>x.status==='Medical Leave').length, gate=a.filter(x=>x.status==='Gate Pass').length;
+ const totalP=p.reduce((s,x)=>s+x.total,0)+h.reduce((s,x)=>s+x.total,0);
+ operatorResult.innerHTML=`
+ <div class="profile">${emp?.photo?`<img src="${emp.photo}">`:'<div class="photo"></div>'}<div><h3 style="margin:0">${esc(emp?.name||a[0]?.name||p[0]?.name||h[0]?.name||'Unknown')}</h3><div>ID: ${esc(id)} | ${esc(emp?.process||'')}</div></div></div>
+ <hr><p><b>Attendance:</b> Present ${present} | Absent ${absent} | Leave ${leave} | Medical ${medical} | Gate Pass ${gate}</p>
+ <p><b>Total Production:</b> ${totalP}</p>
+ <h3>📅 Attendance History</h3><div class="table-wrap"><table><tr><th>Date</th><th>Status</th><th>Reason</th></tr>${a.map(x=>`<tr><td>${x.date}</td><td>${esc(x.status)}</td><td>${esc(x.reason)}</td></tr>`).join('')}</table></div>
+ <h3>📊 Production History</h3><div class="table-wrap"><table><tr><th>Date</th><th>Order</th><th>Target</th><th>Production</th><th>Efficiency</th></tr>${p.map(x=>`<tr><td>${x.date}</td><td>${esc(x.order)}</td><td>${x.target}</td><td>${x.total}</td><td>${x.target?((x.total/x.target)*100).toFixed(1):0}%</td></tr>`).join('')}</table></div>
+ <h3>⏱️ Hourly History</h3><div class="table-wrap"><table><tr><th>Date</th><th>Order</th><th>10-Hour Total</th></tr>${h.map(x=>`<tr><td>${x.date}</td><td>${esc(x.order)}</td><td>${x.total}</td></tr>`).join('')}</table></div>`;
+}
+function showAllYear(){searchOperator();}
+
+function render(){
+ dEmployees.textContent=db.employees.length;
+ dPresent.textContent=db.attendance.filter(x=>x.date===today&&x.status==='Present').length;
+ dProduction.textContent=db.production.filter(x=>x.date===today).reduce((a,b)=>a+b.total,0)+db.hourly.filter(x=>x.date===today).reduce((a,b)=>a+b.total,0);
+ dRecords.textContent=db.attendance.length+db.production.length+db.hourly.length;
+ attTable.innerHTML=db.attendance.slice().reverse().map((x,r)=>{let i=db.attendance.length-1-r;return `<tr><td>${esc(x.date)}</td><td>${esc(x.id)}</td><td>${esc(x.name)}</td><td>${esc(x.status)}</td><td>${esc(x.reason)}</td><td><button class="danger" onclick="del('attendance',${i})">Delete</button></td></tr>`}).join('');
+ prodTable.innerHTML=db.production.slice().reverse().map((x,r)=>{let i=db.production.length-1-r,e=x.target?((x.total/x.target)*100).toFixed(1):'0';return `<tr><td>${esc(x.date)}</td><td>${esc(x.id)}</td><td>${esc(x.name)}</td><td>${esc(x.order)}</td><td>${x.target}</td><td>${x.total}</td><td>${e}%</td><td><button class="danger" onclick="del('production',${i})">Delete</button></td></tr>`}).join('');
+ hourTable.innerHTML=db.hourly.slice().reverse().map((x,r)=>{let i=db.hourly.length-1-r;return `<tr><td>${esc(x.date)}</td><td>${esc(x.id)}</td><td>${esc(x.name)}</td><td>${esc(x.order)}</td><td>${x.total}</td><td><button class="danger" onclick="del('hourly',${i})">Delete</button></td></tr>`}).join('');
+ empTable.innerHTML=db.employees.map((x,i)=>`<tr><td>${x.photo?`<img class="photo" src="${x.photo}">`:'—'}</td><td>${esc(x.id)}</td><td>${esc(x.name)}</td><td>${esc(x.process)}</td><td><button class="danger" onclick="del('employees',${i})">Delete</button></td></tr>`).join('');
+}
+function makeReport(){
+ let m=reportMonth.value,id=reportEmp.value.trim();
+ if(!m)return alert('Month নির্বাচন করুন।');
+ let a=db.attendance.filter(x=>x.date.startsWith(m)&&( !id||x.id===id));
+ let p=db.production.filter(x=>x.date.startsWith(m)&&( !id||x.id===id));
+ let h=db.hourly.filter(x=>x.date.startsWith(m)&&( !id||x.id===id));
+ let present=a.filter(x=>x.status==='Present').length,absent=a.filter(x=>x.status==='Absent').length;
+ let totalP=p.reduce((s,x)=>s+x.total,0)+h.reduce((s,x)=>s+x.total,0);
+ reportResult.innerHTML=`<h3>${m} Report</h3><p>Present: <b>${present}</b> | Absent: <b>${absent}</b> | Production: <b>${totalP}</b></p><p>Attendance records: ${a.length} | Daily production records: ${p.length} | Hourly records: ${h.length}</p>`;
+}
+function csv(rows){return rows.map(r=>r.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\\n');}
+function exportCSV(){
+ let rows=[['TYPE','DATE','ID','NAME','STATUS/ORDER','TARGET','PRODUCTION','TOTAL','REASON']];
+ db.attendance.forEach(x=>rows.push(['Attendance',x.date,x.id,x.name,x.status,'','','',x.reason]));
+ db.production.forEach(x=>rows.push(['Production',x.date,x.id,x.name,x.order,x.target,x.total,'','']));
+ db.hourly.forEach(x=>rows.push(['Hourly',x.date,x.id,x.name,x.order,'','',x.total,'']));
+ let blob=new Blob(['\\ufeff'+csv(rows)],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='KSI_Office_Manager.csv';a.click();
+}
+function downloadBackup(){
+ let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='KSI_Office_Manager_Backup.json';a.click();
+}
+function restoreBackup(e){
+ let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{let x=JSON.parse(r.result);if(!x.employees||!x.attendance||!x.production||!x.hourly)throw 0;db=x;save();alert('Backup restored successfully.')}catch{alert('ভুল Backup file।')}};r.readAsText(f);
+}
+function clearAll(){if(confirm('সব ডাটা মুছে ফেলবেন? এটি ফিরিয়ে আনা যাবে না।')){db={employees:[],attendance:[],production:[],hourly:[]};save();}}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(b.dataset.page).classList.add('active');});
+render();
+</script>
+</body>
+</html>
